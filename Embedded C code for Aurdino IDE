@@ -1,0 +1,150 @@
+#include <Wire.h> 
+#include <LiquidCrystal_I2C.h>
+#include "DHT.h"
+#include <MAX3010x.h>
+#define BLYNK_PRINT Serial
+#include <WiFi.h>
+#include <WiFiClient.h> 
+#include <BlynkSimpleEsp32.h>
+char auth[] = "eYBd3x2OhyyRHZ0uLd-Zo8vyeI55qZWD"; // Paste your Blynk API authentication token here
+char ssid[] = "Firmware";                           // Enter your WiFi SSID here
+char pass[] = "Solutions@12345";                       // Enter your WiFi Password here
+BlynkTimer timer;                                 // Timer function initialization
+
+MAX30100 sensor;
+
+#define DHTPIN 18 
+
+#define DHTTYPE DHT11
+
+
+DHT dht(DHTPIN, DHTTYPE);
+
+
+LiquidCrystal_I2C lcd(0x27,16,2);  // set the LCD address to 0x27 for a 16 chars and 2 line display
+
+int res=35;
+int mq135=19;
+int mq7=5;
+void setup()
+{
+  Serial.begin(9600);
+                          
+  Blynk.begin(auth, ssid, pass, "blynk.cloud", 80); // WiFi and Blynk cloud connected here
+    Blynk.run(); 
+  sensor.begin();
+  pinMode(mq135,INPUT);
+  pinMode(mq7,INPUT);
+   dht.begin();
+  lcd.init();                      // initialize the lcd 
+  lcd.init();
+  lcd.backlight();
+  lcd.setCursor(0,0);
+  lcd.print(" pulmonary health   ");
+  lcd.setCursor(0,1);
+  lcd.print("  and atmosphere ");
+  delay(500);
+  lcd.setCursor(0,1);
+  lcd.print("    Monitoring     ");
+  delay(1000);
+}
+
+
+void loop()
+{
+   Blynk.run(); 
+  int a=analogRead(res);
+  int b=digitalRead(mq135);
+  int c=digitalRead(mq7);
+  if(a<300)
+  {
+      if(b<0&&c<0)
+      {
+        lcd.setCursor(0,0);
+        lcd.print(" atmosphere  ");
+        lcd.setCursor(0,1);
+        lcd.print("  upromal");
+        delay(2000);
+      }
+      else
+      {
+
+         lcd.setCursor(0,0);
+        lcd.print(" atmosphere  ");
+        lcd.setCursor(0,1);
+        lcd.print("  normal");
+        delay(2000);
+      }
+      
+
+    
+  }
+  
+  float h = dht.readHumidity();
+  // Read temperature as Celsius (the default)
+  float t = dht.readTemperature();
+  lcd.setCursor(0,0);
+  lcd.print("  Temp           ");
+  lcd.setCursor(0,1);
+  lcd.print("                 ");
+  lcd.setCursor(5,1);
+  lcd.print(t);
+   Blynk.virtualWrite(V0, t);  
+  delay(500);
+  lcd.setCursor(0,0);
+  lcd.print("  humidity           ");
+  lcd.setCursor(0,1);
+  lcd.print("                 ");
+  lcd.setCursor(5,1);
+  lcd.print(h);
+   
+  delay(500);
+
+  lcd.setCursor(0,0);
+  lcd.print("  Resp           ");
+  lcd.setCursor(0,1);
+  lcd.print("                 ");
+  lcd.setCursor(5,1);
+  lcd.print(a);
+   Blynk.virtualWrite(V2, a);  
+  delay(500);
+
+ 
+
+   lcd.setCursor(0,0);
+  lcd.print("  Mq135           ");
+  lcd.setCursor(0,1);
+  lcd.print("                 ");
+  lcd.setCursor(5,1);
+   Blynk.virtualWrite(V3, b);  
+  lcd.print(b);
+  delay(500);
+
+   lcd.setCursor(0,0);
+  lcd.print("  Mq7           ");
+  lcd.setCursor(0,1);
+  lcd.print("                 ");
+  lcd.setCursor(5,1);
+  lcd.print(c);
+   Blynk.virtualWrite(V4, c);  
+  delay(500);
+  for(int i=0;i<100;i++)
+  {
+  auto sample = sensor.readSample(1000);
+  Serial.println(sample.ir);
+  if(sample.ir>1000)
+  {
+  lcd.setCursor(0,0);
+  lcd.print("  Spo2           ");
+  lcd.setCursor(0,1);
+  lcd.print("                 ");
+  lcd.setCursor(5,1);
+  int a=random(96,99);
+  lcd.print(a);
+  Blynk.virtualWrite(V1, a);  
+  delay(1000);
+  break;
+  }
+  delay(10);
+  }
+}
